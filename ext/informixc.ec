@@ -56,7 +56,7 @@ static ID s_add_info, s_from_months, s_from_seconds;
 static ID s_add, s_mul;
 
 static VALUE sym_name, sym_type, sym_nullable, sym_stype, sym_length;
-static VALUE sym_precision, sym_scale, sym_default, sym_xid;
+static VALUE sym_precision, sym_scale, sym_default;
 static VALUE sym_scroll, sym_hold;
 static VALUE sym_col_info, sym_sbspace, sym_estbytes, sym_extsz;
 static VALUE sym_createflags, sym_openflags, sym_maxbytes;
@@ -1992,7 +1992,7 @@ rb_database_initialize(int argc, VALUE *argv, VALUE self)
 	sid = dbt->stmt_id;
 
 	EXEC SQL prepare :sid from
-		'select colname, coltype, collength, extended_id,
+		'select colname, coltype, collength,
 			type, default, c.colno
 		from syscolumns c, outer sysdefaults d
 		where c.tabid = ? and c.tabid = d.tabid and c.colno = d.colno
@@ -2231,7 +2231,7 @@ rb_database_columns(VALUE self, VALUE tablename)
 	EXEC SQL begin declare section;
 		char *did, *cid;
 		char *tabname;
-		int tabid, xid;
+		int tabid;
 		varchar colname[129];
 		short coltype, collength;
 		char deftype[2];
@@ -2260,7 +2260,7 @@ rb_database_columns(VALUE self, VALUE tablename)
 		raise_ifx_extended();
 
 	for(;;) {
-		EXEC SQL fetch :cid into :colname, :coltype, :collength, :xid,
+		EXEC SQL fetch :cid into :colname, :coltype, :collength,
 			:deftype, :defvalue;
 		if (SQLCODE < 0)
 			raise_ifx_extended();
@@ -2272,7 +2272,6 @@ rb_database_columns(VALUE self, VALUE tablename)
 		rb_hash_aset(column, sym_name, rb_str_new2(colname));
 		rb_hash_aset(column, sym_type, INT2FIX(coltype));
 		rb_hash_aset(column, sym_nullable, coltype&0x100? Qfalse: Qtrue);
-		rb_hash_aset(column, sym_xid, INT2FIX(xid));
 
 		if ((coltype&0xFF) < 23) {
 			stype = coltype == 4118? stypes[23]: stypes[coltype&0xFF];
@@ -3404,7 +3403,6 @@ void Init_informixc(void)
 	sym_precision = ID2SYM(rb_intern("precision"));
 	sym_scale = ID2SYM(rb_intern("scale"));
 	sym_default = ID2SYM(rb_intern("default"));
-	sym_xid = ID2SYM(rb_intern("xid"));
 
 	sym_scroll = ID2SYM(rb_intern("scroll"));
 	sym_hold = ID2SYM(rb_intern("hold"));
